@@ -1,3 +1,4 @@
 apache-beam
+apache-beam[gcp]
 beam-nuggets
 psycopg2-binary
