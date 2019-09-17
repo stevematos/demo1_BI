@@ -1,0 +1,17 @@
+{
+  "name": "demo1",
+  "description": "Permite el ingreso de un csv y una base de datos, da como resultado dos nuevos campos en un txt",
+  "parameters": [{
+    "name": "inputFile",
+    "label": "Input Cloud Storage File(s)",
+    "help_text": "Data de entrada",
+    "regexes": ["^gs:\/\/[^\n\r]+$"],
+    "is_optional": true
+  },
+  {
+    "name": "output",
+    "label": "Output Cloud Storage File Prefix",
+    "help_text": "Data de salida. ex: gs://MyBucket/counts",
+    "regexes": ["^gs:\/\/[^\n\r]+$"]
+  }]
+}
