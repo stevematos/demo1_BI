@@ -178,7 +178,7 @@ def main():
                         help='Output for the pipeline',
                         default='./players-final.txt')
 
-    args, pipeline_args = parser.parse_known_args(argv)
+    args, pipeline_args = parser.parse_known_args()
 
     extract_file_csv = args.input
     query_database = """
