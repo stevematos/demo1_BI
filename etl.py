@@ -114,24 +114,10 @@ class ETL:
             self.pipeline
             | 'leyendo archivo' >> ReadFromText(extract_file)
             | 'Sacando data' >> beam.ParDo(SplitCsv())
-            # | 'poniendo el id' >> beam.ParDo(MapBigQueryRow('id'))
-            # | 'ver data' >> beam.Map(view_records)
         )
 
         return data_read
 
-        # data_from_source = \
-        # (
-        #     self.p
-        #     | 'ReadMyFile' >> ReadFromText(extract_file)
-        #     | 'Splitter using beam.Map' >> beam.Map(lambda record: (record.split(','))[1])
-        #     | 'Map record to 1' >> beam.Map(lambda record: (record, 1))
-        #     | 'GroupBy the data' >> beam.GroupByKey()
-        #     | 'Sum using beam.Map' >> beam.Map( lambda record: (record[0], sum(record[1])))
-        #     | 'Export results to new file' >> WriteToText(output_file)
-        # )
-        #
-        # result = p.run()
 
     def __get_database__(self,config):
 
@@ -153,10 +139,8 @@ class ETL:
             | "Leyendo filas de la db" >> relational_db.ReadFromDB(
                                                 source_config=config_database,
                                                 table_name=config['table'],
-                                                query=config['query'] # optional. When omitted, all table records are returned.
+                                                query=config['query']
                                             )
-            # | 'poniendo el id a la DB' >> beam.ParDo(MapBigQueryRow('id'))
-            # | 'ver data DB' >> beam.Map(view_records)
         )
 
         return data_read
