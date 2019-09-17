@@ -1,6 +1,8 @@
 import apache_beam as beam
 from apache_beam.options.pipeline_options import PipelineOptions
 
+import logging
+
 import argparse
 
 from apache_beam.io import ReadFromText
@@ -8,49 +10,51 @@ from apache_beam.io import WriteToText
 
 from beam_nuggets.io import relational_db
 
-LENGTHCSV = 6
-
-CONVERT_CANTIDAD = {
-    'K': 1000,
-    'M': 1000000
-}
 
 
-def view_records(record):
-    print record
 
-
-def get_clean_csv(valores):
-    valores_clean = valores
-    if len(valores) < LENGTHCSV:
-        valores_clean = valores + [0] * (LENGTHCSV - len(valores))
-    return valores_clean
-
-
-def get_convertir_euro(valor):
-    valor = valor[1:]
-    cantidad = CONVERT_CANTIDAD.get(valor[-1], 1)
-
-    valor_sin_cantidad = 0
-    if valor[0:-1].strip():
-        valor_sin_cantidad = float(valor[0:-1])
-
-    return cantidad * valor_sin_cantidad
+# def view_records(record):
+#     print record
+#
 
 
 class SplitCsv(beam.DoFn):
 
+    def __init__(self):
+        super(SplitCsv, self).__init__()
+        self.LENGTHCSV = 6
+        self.CONVERT_CANTIDAD = {
+                                    'K': 1000,
+                                    'M': 1000000
+                                }
+
+    def get_clean_csv(self,valores):
+        valores_clean = valores
+        if len(valores) < self.LENGTHCSV:
+            valores_clean = valores + [0] * (self.LENGTHCSV - len(valores))
+        return valores_clean
+
+    def get_convertir_euro(self,valor):
+        valor = valor[1:]
+        cantidad = self.CONVERT_CANTIDAD.get(valor[-1], 1)
+
+        valor_sin_cantidad = 0
+        if valor[0:-1].strip():
+            valor_sin_cantidad = float(valor[0:-1])
+
+        return cantidad * valor_sin_cantidad
+
     def process(self, element):
         # element = element[:-1]
-        id, total, potencial, valor, salario, clausula_salida = get_clean_csv(element.split(','))
+        id, total, potencial, valor, salario, clausula_salida = self.get_clean_csv(element.split(','))
 
         return [{
             'id': int(id),
             'total': int(total),
             'potencial': int(potencial),
-            'valor': get_convertir_euro(valor) if valor else 0,
-            'salario': get_convertir_euro(salario) if salario else 0,
-            'clausula_salida': get_convertir_euro(clausula_salida) if clausula_salida else 0,
+            'valor': self.get_convertir_euro(valor) if valor else 0,
+            'salario': self.get_convertir_euro(salario) if salario else 0,
+            'clausula_salida': self.get_convertir_euro(clausula_salida) if clausula_salida else 0,
             'tipo_moneda': 'euro'
         }]
 
@@ -71,6 +75,8 @@ class TransformRow(beam.DoFn):
 
     def process(self, element):
         information = element[1]['information'][0]
+
+        print(element)
         values = element[1]['values'][0]
         return [
             {
@@ -110,7 +116,7 @@ class ETL:
     def __get_csv__(self, extract_file):
         data_read = (
                 self.pipeline
-                | 'leyendo archivo' >> ReadFromText(extract_file)
+                | 'leyendo archivo' >> ReadFromText(file_pattern=extract_file)
                 | 'Sacando data' >> beam.ParDo(SplitCsv())
         )
 
@@ -149,10 +155,10 @@ class ETL:
         information_players = information_players | "poniendo id a la informacion" >> beam.ParDo(
             MapBigQueryRow('id'))
 
-        records = ({'values': values_players,
-                    'information': information_players} | 'group_by_id' >> beam.CoGroupByKey())
+        records = {'values': values_players,
+                    'information': information_players} | 'group_by_id' >> beam.CoGroupByKey()
 
-        records_transform = records | 'transformando filas filas' >> beam.ParDo(TransformRow())
+        records_transform = records | 'transformando filas' >> beam.ParDo(TransformRow())
         return records_transform
 
     def load(self, records_load, output_file):
@@ -173,7 +179,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input',
                         help='Input for the pipeline',
-                        default='gs://storage-fifa/valores_players.csv')
+                        default='./valores_players.csv')
     parser.add_argument('-o', '--output',
                         help='Output for the pipeline',
                         default='./players-final.txt')
@@ -204,4 +210,5 @@ def main():
 
 
 if __name__ == "__main__":
+    logging.getLogger().setLevel(logging.INFO)
     main()
